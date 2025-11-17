@@ -95,6 +95,26 @@ stdenv.mkDerivation (finalAttrs: {
     "--enable-xonx"
   ];
 
+  preBuild =
+    let
+      libPathsVar = if isDarwin then "DYLD_FALLBACK_LIBRARY_PATH" else "LD_LIBRARY_PATH";
+    in
+      /*
+        Makes FFIs available for setting up `main-distribution` and its
+        dependencies, which is integrated into the build process of Racket
+      */
+      ''
+        for lib_path in $( \
+            echo "$NIX_LDFLAGS" \
+              | tr ' ' '\n' \
+              | grep '^-L' \
+              | sed 's/^-L//' \
+              | awk '!seen[$0]++' \
+        ); do
+            addToSearchPath ${libPathsVar} $lib_path
+        done
+      '';
+
   # The upstream script builds static libraries by default.
   dontAddStaticConfigureFlags = true;
 
